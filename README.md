@@ -31,12 +31,13 @@ The project involves creating a robust pipeline for data preprocessing, model tr
    - [x] Define the project structure and dependencies.
 
 2. **Data Preparation**:
-   - [ ] Analyze and clean the dataset.
-   - [ ] Develop a data loader and augmentation pipeline.
+   - [x] Analyze and clean the dataset.
+   - [X] Develop a data loader and augmentation pipeline.
 
 3. **Model Development**:
-   - [ ] Design the initial model and implement training and validation loops.
-   - [ ] Experiment with different architectures and hyperparameters.
+   - [X] Design the initial model and implement training and validation loops.
+   - [X] Experiment with initial architectures and changing hyperparameters.
+   - [X] Add tool for faster convergence
 
 4. **Iterative Refinement**:
    - [ ] Address class imbalances and improve performance on edge cases.
@@ -91,7 +92,11 @@ The project involves creating a robust pipeline for data preprocessing, model tr
 - Extend the model for additional car viewpoints or object detection.
 - Incorporate real-time feedback mechanisms for further deployment enhancements.
 
+---
 
+#### Extras 
 
-
-
+Create requirements.txt:
+```
+pip freeze | findstr /V " @ file://" > requirements.txt
+```
