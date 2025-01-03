@@ -41,7 +41,7 @@ def train(model, train_loader, val_loader, criterion, optimizer,
     iteration = 0
     epoch = 0
     num_layers_unfrozen = 0
-    unfreeze_interval = 10
+    unfreeze_interval = 500
     total_layers = len(list(model.features.children()))
     validate(model, val_loader, criterion, wandb, iteration, device)
     
@@ -100,9 +100,10 @@ def train(model, train_loader, val_loader, criterion, optimizer,
             wandb.log({
                 "train/loss": avg_loss,
                 "train/accuracy": accuracy,
-                "iteration": iteration + 1,
+                "step": iteration + 1,
                 "epoch":epoch,
-                "lr":current_lr
+                "lr":current_lr,
+                "layers_unfrozen": num_layers_unfrozen
                 
             })
 
@@ -153,10 +154,10 @@ def validate(model, val_loader, criterion, wandb, iteration, device):
     print(f"Validation - Loss: {avg_loss:.4f}, Accuracy: {accuracy:.4f}, F1 Score: {f1:.4f}")
     # W&B: Log validation metrics
     wandb.log({
-        "val/loss": avg_loss,
-        "val/accuracy": accuracy,
-        "val/f1-score":f1,
-        "iteration": iteration + 1
+        "validation/loss": avg_loss,
+        "validation/accuracy": accuracy,
+        "validation/f1-score":f1,
+        "step": iteration + 1
     })
 
 
@@ -170,7 +171,7 @@ if __name__ == "__main__":
     # Optionally, wandb.config can store hyperparams:
     wandb.config = {
         "batch_size": 8,
-        "learning_rate": 0.0001,
+        "learning_rate": 5e-4,
         "num_iterations": 5000,
         "log_interval": 5,
         "val_interval": 50
@@ -179,8 +180,8 @@ if __name__ == "__main__":
     # Paths and parameters
     base_dir = "E:/Om/Other Projects/ClearQuote_Assignment/data"
     resize_to = (380, 380)
-    train_data_path = "training_data.json"
-    val_data_path = "val_data.json"
+    train_data_path = "data/training_data.json"
+    val_data_path = "data/val_data.json"
     batch_size = wandb.config["batch_size"]
     learning_rate = wandb.config["learning_rate"]
     num_iterations = wandb.config["num_iterations"]
