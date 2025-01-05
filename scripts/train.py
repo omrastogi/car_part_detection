@@ -1,22 +1,17 @@
+import os
 import json
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader
-import itertools  # Make sure to import itertools for itertools.cycle
+import numpy as np
+import wandb  # W&B
+import itertools  # For itertools.cycle
+from tqdm import tqdm
 from sklearn.metrics import f1_score
+from torch import nn, optim
+from torch.utils.data import DataLoader, WeightedRandomSampler
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
-
-import wandb # W&B
-from tqdm import tqdm
-import os
-from torch.utils.data import DataLoader, WeightedRandomSampler
-import numpy as np
-
-
-from src.dataset.dataset import CarDataset  # Replace with your dataset class
-from src.model.mobilenet import build_mobilenet_v3  # Replace with your model function
+from src.dataset.dataset import CarDataset
+from src.model.mobilenet import build_mobilenet_v3
 from src.model.efficientnet import build_efficientnet_b4
 from src.model.convnext import build_convnext
 

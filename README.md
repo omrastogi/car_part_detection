@@ -58,10 +58,10 @@ python test_predict.py \
 ## Train
 
 ```bash
-CUDA_VISIBLE_DEVICES=1 python train.py --base_data_dir data \
+CUDA_VISIBLE_DEVICES=0 python scripts/train.py --base_data_dir data \
                 --train_data_path data/training_data.json \
                 --val_data_path data/val_data.json \
-                --batch_size 32 \
+                --batch_size 8 \
                 --learning_rate 0.0005 \
                 --num_iterations 10000 \
                 --log_interval 5 \
