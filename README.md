@@ -54,8 +54,12 @@ python test_predict.py \
 ```
 
 ---
-
-## Train
+## Prepare Dataset 
+```bash
+python scripts/preprocess_ann.py
+```
+---
+## **Train**
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python scripts/train.py --base_data_dir data \
