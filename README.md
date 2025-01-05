@@ -32,14 +32,18 @@ This project classifies car images into six viewpoints (Front, Front-Left, Front
 ---
 ## **Setup**
 
+1. Clone 
+```bash 
+git clone https://github.com/omrastogi/car_part_detection.git
+cd car_part_detection
+```
+2. Install Packages
 ```bash
 conda create --name viewpointcq python=3.11 -y
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
 pip install -r requirements.txt
 ```
-
----
-## **Download Model**
+3. Download Models
 ```bash
 mkdir -p lite_models/viewpoint  # Ensure the directory exists
 wget -P lite_models/viewpoint https://huggingface.co/omrastogi/viewpoint/resolve/main/convnext.tflite
