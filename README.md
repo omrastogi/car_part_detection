@@ -140,3 +140,4 @@ pip freeze | findstr /V " @ file://" > requirements.txt
 1. MobileNetV2: https://wandb.ai/omegam/my_car_classification_project/runs/x06uzfsc?nw=nwuseromegam 
 
 2. EfficientNetB4: https://wandb.ai/omegam/my_car_classification_project/runs/toev44gf?nw=nwuseromegam
+---
