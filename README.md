@@ -1,9 +1,9 @@
 # **Car Viewpoint Classification Project**
 
-## **Project Overview**
+## **Project Overview** - [About project](readme.txt)
+
 This project classifies car images into six viewpoints (Front, Front-Left, Front-Right, Rear, Rear-Left, Rear-Right) with an additional "None" class for irrelevant or ambiguous images. It includes a robust pipeline for preprocessing, model training, and optimization for edge deployment.
 
-[About project](readme.txt)
 ---
 ## **Tasks and Milestones**
 

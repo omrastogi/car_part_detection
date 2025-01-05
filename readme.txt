@@ -57,6 +57,7 @@ Model Used:
 The model used is a ConvNeXt-Tiny architecture, pre-trained on ImageNet, and fine-tuned for classifying the car viewpoints. 
 - Number of Parameters: ~28.6M
 - Input Image Size: 380x380
+I also experiemented MobileNetv2 and EfficientNetB4, which was very similar to ConvNext. 
 
 Training Parameters:
 --------------------
