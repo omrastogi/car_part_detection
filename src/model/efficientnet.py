@@ -35,4 +35,7 @@ def build_efficientnet_b4(num_classes=7):
 
 
 if __name__ == "__main__":
-    print(build_efficientnet_b4(num_classes=7))
+    model = build_efficientnet_b4(num_classes=7)
+    # Check the model
+    total_params = sum(p.numel() for p in model.parameters())
+    print(f"Total number of parameters: {total_params}")

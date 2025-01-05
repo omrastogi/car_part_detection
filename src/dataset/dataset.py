@@ -22,6 +22,7 @@ class CarDataset(Dataset):
         self.augment = augment
         self.class_labels = ["Front", "Rear", "Front-Right", "Front-Left", "Rear-Right", "Rear-Left", "None"]
         self.label_to_idx = {label: idx for idx, label in enumerate(self.class_labels)}
+        self.non_flippable_labels = ["Rear-Right", "Rear-Left", "Front-Right", "Front-Left"]
 
         # Preprocessing transformations
         self.preprocess = T.Compose([
@@ -29,11 +30,10 @@ class CarDataset(Dataset):
             T.Resize(self.resize_to)
         ])
         
-        # Augmentation transformations
         self.augmentations = T.Compose([
-            T.RandomHorizontalFlip(p=0.5),
-            T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
-            T.RandomAffine(degrees=0, scale=(0.9, 1.1))
+            T.RandomAffine(degrees=45, scale=(0.7, 1.3)),  # Random rotation and scaling
+            T.RandomResizedCrop(size=self.resize_to, scale=(0.8, 1.2)),  # Random crop and scale
+            T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),  # Color adjustments
         ]) if self.augment else None
 
     def __len__(self):
@@ -60,19 +60,19 @@ class CarDataset(Dataset):
         
         # Apply preprocessing
         image = self.preprocess(image)
-        
-        # Apply augmentations if enabled
-        if self.augment and self.augmentations:
-            image = self.augmentations(image)
-
         # Prepare annotations and labels
         final_label = item['final_label']
+
+        # Apply augmentations if enabled
+        if self.augment:
+            if final_label in self.non_flippable_labels:
+                image = T.RandomHorizontalFlip(p=0.5)(image)  # Apply flipping only if label is flippable
+            image = self.augmentations(image)
 
         # Convert final label to one-hot encoding
         final_label_one_hot = torch.zeros(len(self.class_labels))
         if final_label in self.label_to_idx:
             final_label_one_hot[self.label_to_idx[final_label]] = 1.0            
-        
         
         return {
             "image": image,

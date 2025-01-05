@@ -7,7 +7,14 @@ __pycache__/
 *.so
 
 # Heavy file/ dataset
-/data
+data/
+checkpoints/
+lite_models/
+visualized_samples/
+wandb/
+
+# tflite
+*.tflite
 
 # Distribution / packaging
 .Python
@@ -53,6 +60,10 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+
+# Annotations 
+*.csv
+*.json
 
 # Translations
 *.mo
