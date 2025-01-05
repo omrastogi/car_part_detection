@@ -13,6 +13,9 @@ lite_models/
 visualized_samples/
 wandb/
 
+# tflite
+*.tflite
+
 # Distribution / packaging
 .Python
 build/

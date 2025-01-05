@@ -1,3 +1,6 @@
+import argparse
+import autoroot
+import autorootcwd
 import json
 import torch
 import torch.nn.functional as F
@@ -16,7 +19,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def load_json_lines(file_path):
     with open(file_path, 'r') as file:
         return [json.loads(line) for line in file]
-
 
 def evaluate_model(model, test_loader, criterion):
     """
@@ -62,6 +64,7 @@ def evaluate_model(model, test_loader, criterion):
     print(f"Test Loss: {avg_loss:.4f}")
     print(f"Test Accuracy: {accuracy:.4f}")
     print(f"Class-wise F1 Scores: {class_f1_scores}")
+    print("")
     print("Classification Report:\n", report)
 
     return {
@@ -72,26 +75,33 @@ def evaluate_model(model, test_loader, criterion):
     }
 
 if __name__ == "__main__":
-    # Paths and parameters
-    test_data_path = "data/test_data.json"
-    base_dir = "data"
-    resize_to = (380, 380)
-    batch_size = 32
-    
+    # Argument parser
+    parser = argparse.ArgumentParser(description="Evaluate a trained model on the test set.")
+
+    # Add arguments
+    parser.add_argument("--test_data_path", type=str, required=True, help="Path to the test data JSON file.")
+    parser.add_argument("--checkpoint_path", type=str, required=True, help="Path to the saved model checkpoint.")
+    parser.add_argument("--base_dir", type=str, default="data", help="Base directory for test images.")
+    parser.add_argument("--resize_to", type=int, nargs=2, default=(380, 380), help="Resize dimensions for input images.")
+    parser.add_argument("--batch_size", type=int, default=32, help="Batch size for the DataLoader.")
+
+    # Parse arguments
+    args = parser.parse_args()
+
     # Load the trained model
     model = build_convnext(num_classes=len(CLASS_NAMES))
-    state_dict = torch.load("checkpoints/checkpoint_iter_5000.pth", map_location=device)
+    state_dict = torch.load(args.checkpoint_path, map_location=device)
     model.load_state_dict(state_dict["model_state_dict"])  # Replace with your saved model path
     model = model.to(device)
     model.eval()
 
     # Load test dataset
-    test_data = load_json_lines(test_data_path)
-    test_dataset = CarDataset(data=test_data, base_dir=base_dir, 
-                              resize_to=resize_to, augment=False)
+    test_data = load_json_lines(args.test_data_path)
+    test_dataset = CarDataset(data=test_data, base_dir=args.base_dir, 
+                              resize_to=args.resize_to, augment=False)
 
     # Create DataLoader
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
 
     # Define loss criterion
     criterion = torch.nn.CrossEntropyLoss()
@@ -101,13 +111,5 @@ if __name__ == "__main__":
 
     # Print final metrics
     print("Overall Metrics:")
-    print("Acccuracy", metrics["accuracy"])
-    print("f1 score", metrics["weighted_f1"])
-    
-    # for key, value in metrics.items():
-    #     if isinstance(value, dict):
-    #         print(f"{key}:")
-    #         for sub_key, sub_value in value.items():
-    #             print(f"  {sub_key}: {sub_value:.4f}")
-    #     else:
-    #         print(f"{key}: {value:.4f}")
+    print("Accuracy", metrics["accuracy"])
+    print("F1 Score", metrics["weighted_f1"])

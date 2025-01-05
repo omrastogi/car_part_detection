@@ -1,6 +1,8 @@
 import tensorflow as tf
 import numpy as np
 from PIL import Image
+import autoroot
+import autorootcwd
 
 class TFLiteModel:
     def __init__(self, model_path):
@@ -54,6 +56,12 @@ class TFLiteModel:
 
 # Example usage
 if __name__ == "__main__":
-    model = TFLiteModel("model.tflite")
-    prediction = model.predict("data/5f4dd0caf0b0b46649993480/scraped_0n61nM_1598934146856.jpg")
+    import argparse
+    parser = argparse.ArgumentParser(description="Infer a TFLite model on a given image.")
+    parser.add_argument("--model_path", type=str, required=True, help="Path to the TFLite model file.")
+    parser.add_argument("--image_path", type=str, required=True, help="Path to the input image.")
+    args = parser.parse_args()
+
+    model = model = TFLiteModel(args.model_path)
+    prediction = model.predict(args.image_path)
     print("Predicted Class:", prediction)

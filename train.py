@@ -112,12 +112,11 @@ def save_checkpoint(model, optimizer, epoch, iteration, metrics, checkpoint_dir=
     print(f"[Checkpoint Saved] {checkpoint_path}")
     print(f"[Config Saved]     {config_path}")
 
-def train(model, train_loader, val_loader, criterion, optimizer, 
-          num_iterations, log_interval, val_interval, lr_scheduler, ckpt_interval, device):
-    
+def train(model, train_loader, val_loader, criterion, optimizer, lr_scheduler, args, device):
+    """Training function with argparse support."""
     # W&B: Watch the model to log gradients and parameters
-    wandb.watch(model, criterion, log="all", log_freq=log_interval)
-    
+    wandb.watch(model, criterion, log="all", log_freq=args.log_interval)
+
     model.train()
     total_loss = 0.0
     correct = 0
@@ -125,25 +124,25 @@ def train(model, train_loader, val_loader, criterion, optimizer,
     iteration = 0
     epoch = 0
     num_layers_unfrozen = 0
-    unfreeze_interval = 400
+    unfreeze_interval = args.unfreeze_interval
     total_layers = len(list(model.features.children()))
     validate(model, val_loader, criterion, wandb, iteration, device)
-    
-    for iteration in tqdm(range(num_iterations), desc="Training Progress"):
+
+    for iteration in tqdm(range(args.num_iterations), desc="Training Progress"):
         # Reinitialize the iterator at the start of each epoch
         if iteration % len(train_loader) == 0:
             epoch += 1
             train_loader_iter = iter(train_loader)  # Create a new iterator for the DataLoader
 
         # Progressive unfreezing based on iteration count
-        if (iteration+1) % unfreeze_interval == 0 and num_layers_unfrozen < total_layers:
+        if (iteration + 1) % unfreeze_interval == 0 and num_layers_unfrozen < total_layers:
             num_layers_unfrozen += 1
             unfreeze_layers(model, num_layers_unfrozen)
 
             # Update optimizer to include newly unfrozen layers
             optimizer = torch.optim.AdamW(
                 filter(lambda p: p.requires_grad, model.parameters()),
-                lr=1e-4, weight_decay=1e-4
+                lr=args.learning_rate, weight_decay=1e-4
             )
             print(f"Unfroze {num_layers_unfrozen}/{total_layers} layers at iteration {iteration}.")
 
@@ -158,10 +157,10 @@ def train(model, train_loader, val_loader, criterion, optimizer,
         outputs = model(inputs)
         smoothed_labels = smooth_labels(labels, smoothing=0.1)
         loss = criterion(outputs, smoothed_labels)
-        
+
         loss.backward()
-        # Only step optimizer after ACCUM_STEPS iterations
-        if (iteration + 1) % ACCUM_STEPS == 0:
+        # Only step optimizer after grad_accumulation iterations
+        if (iteration + 1) % args.grad_accumulation == 0:
             optimizer.step()
             optimizer.zero_grad()
 
@@ -176,21 +175,18 @@ def train(model, train_loader, val_loader, criterion, optimizer,
         correct += predicted.eq(labels.argmax(dim=1)).sum().item()
 
         # Logging
-        if (iteration + 1) % log_interval == 0:
-            avg_loss = total_loss / log_interval
+        if (iteration + 1) % args.log_interval == 0:
+            avg_loss = total_loss / args.log_interval
             accuracy = correct / total
-            
 
             # W&B: Log metrics
             wandb.log({
                 "train/loss": avg_loss,
                 "train/accuracy": accuracy,
-                "epoch":epoch,
-                "lr":current_lr,
+                "epoch": epoch,
+                "lr": current_lr,
                 "layers_unfrozen": num_layers_unfrozen
-                    },
-                step=iteration+1
-            )
+            }, step=iteration + 1)
 
             # Reset for next logging interval
             total_loss = 0.0
@@ -198,27 +194,26 @@ def train(model, train_loader, val_loader, criterion, optimizer,
             total = 0
 
         # Validation
-        if (iteration + 1) % val_interval == 0:
+        if (iteration + 1) % args.val_interval == 0:
             validate(model, val_loader, criterion, wandb, iteration, device)
-            print(f"Iteration {iteration + 1}/{num_iterations}, Loss: {avg_loss:.4f}, Accuracy: {accuracy:.4f}")
-        iteration += 1
-        if (iteration + 1) % ckpt_interval == 0:
+            print(f"Iteration {iteration + 1}/{args.num_iterations}, Loss: {avg_loss:.4f}, Accuracy: {accuracy:.4f}")
+
+        # Checkpoint saving
+        if (iteration + 1) % args.checkpoint_interval == 0:
             avg_loss, accuracy, f1 = validate(model, val_loader, criterion, wandb, iteration, device)
-            metrics = dict (
+            metrics = dict(
                 loss=avg_loss,
-                accuracy = accuracy,
-                f1_score = f1
+                accuracy=accuracy,
+                f1_score=f1
             )
-            # Save a checkpoint (extract the details inside `save_checkpoint`)
             save_checkpoint(
                 model=model,
                 optimizer=optimizer,
                 epoch=epoch,
-                iteration=iteration,   # `save_checkpoint` adds +1 in config
-                metrics = metrics,
+                iteration=iteration,  # `save_checkpoint` adds +1 in config
+                metrics=metrics,
                 checkpoint_dir="checkpoints",
             )
-
 
     print("Training complete.")
 
@@ -281,88 +276,68 @@ def validate(model, val_loader, criterion, wandb, iteration, device):
     return avg_loss, accuracy, f1
 
 if __name__ == "__main__":
-    # W&B: Initialize the project
-    wandb.init(project="my_car_classification_project", config={"code": open(__file__).read()})
-    # Optionally, wandb.config can store hyperparams:
-    wandb.config = {
-        "batch_size": 32,
-        "learning_rate": 5e-4,
-        "num_iterations": 10000,
-        "log_interval": 5,
-        "val_interval": 50,
-        "ckpt_interval":1000
-    }
+    import argparse
 
-    # Paths and parameters
-    base_dir = "data"
-    resize_to = (380, 380)
-    train_data_path = "data/training_data.json"
-    val_data_path = "data/val_data.json"
-    batch_size = wandb.config["batch_size"]
-    learning_rate = wandb.config["learning_rate"]
-    num_iterations = wandb.config["num_iterations"]
-    log_interval = wandb.config["log_interval"]
-    val_interval = wandb.config["val_interval"]
-    ckpt_interval = wandb.config["ckpt_interval"]
+    parser = argparse.ArgumentParser(description="Train a car classification model.")
 
-    # Load train and validation data from JSON files
+    # Add arguments
+    parser.add_argument("--base_data_dir", type=str, required=True, help="Path to the training data JSON file.")
+    parser.add_argument("--train_data_path", type=str, required=True, help="Path to the training data JSON file.")
+    parser.add_argument("--val_data_path", type=str, required=True, help="Path to the validation data JSON file.")
+    parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training.")
+    parser.add_argument("--learning_rate", type=float, default=5e-4, help="Learning rate for the optimizer.")
+    parser.add_argument("--num_iterations", type=int, default=10000, help="Number of training iterations.")
+    parser.add_argument("--log_interval", type=int, default=5, help="Interval for logging training metrics.")
+    parser.add_argument("--val_interval", type=int, default=50, help="Interval for validation during training.")
+    parser.add_argument("--checkpoint_interval", type=int, default=1000, help="Interval for saving model checkpoints.")
+    parser.add_argument("--grad_accumulation", type=int, default=1, help="Gradient accumulation steps.")
+    parser.add_argument("--resize_to", type=int, nargs=2, default=(380, 380), help="Resize dimensions for input images.")
+    parser.add_argument("--device", type=str, default="cuda", help="Device to use for training (cuda or cpu).")
+    parser.add_argument("--unfreeze_interval", type=int, default=400, help="Interval for progressively unfreezing model layers.")
+
+    # Parse arguments
+    args = parser.parse_args()
+
+    # W&B initialization
+    wandb.init(project="my_car_classification_project", config=vars(args))
+
+    # Load train and validation data
     def load_json_lines(file_path):
         with open(file_path, 'r') as file:
             return [json.loads(line) for line in file]
 
-    train_data = load_json_lines(train_data_path)
-    val_data = load_json_lines(val_data_path)
+    train_data = load_json_lines(args.train_data_path)
+    val_data = load_json_lines(args.val_data_path)
 
     # Create datasets
-    train_dataset = CarDataset(data=train_data, base_dir=base_dir, 
-                               resize_to=resize_to, augment=True)
-    val_dataset = CarDataset(data=val_data, base_dir=base_dir, 
-                             resize_to=resize_to, augment=False)
+    train_dataset = CarDataset(data=train_data, base_dir=args.base_data_dir, 
+                               resize_to=args.resize_to, augment=True)
+    val_dataset = CarDataset(data=val_data, base_dir=args.base_data_dir, 
+                             resize_to=args.resize_to, augment=False)
 
-    
-    # Weighted Random Sampler for imbalance in dataset 
-    # class_indices = [torch.argmax(item['final_label']).item() for item in train_dataset]
-    # class_counts = np.bincount(class_indices)
-    # class_weights = 1.0 / class_counts  # Inverse of class frequencies
-    # sample_weights = [class_weights[label] for label in class_indices]
-    # sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(train_dataset), replacement=True)
+    # Create DataLoaders
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
+    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
 
-    # Create data loaders
-    # train_loader = DataLoader(train_dataset, batch_size=batch_size, 
-    #                           shuffle=False, num_workers=4, sampler=sampler)
-
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, 
-                              shuffle=True, num_workers=4)
-
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, 
-                            shuffle=False, num_workers=4)
-
-    print(f"Loaded {len(train_dataset)} training samples and {len(val_dataset)} validation samples.")
-
-    # Move the model to GPU if available
+    # Model and optimizer setup
     model = build_convnext(num_classes=7)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device(args.device if torch.cuda.is_available() else "cpu")
     model.to(device)
 
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-2)
+    criterion = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-2)
     lr_scheduler = CosineAnnealingLR(
-        optimizer, 
-        T_max=num_iterations//2,  # # of steps until reaching eta_min
-        eta_min=1e-6
+        optimizer, T_max=args.num_iterations // 2, eta_min=1e-6
     )
 
-    # Start training with iterations
+    # Start training
     train(
         model=model,
         train_loader=train_loader,
         val_loader=val_loader,
         criterion=criterion,
         optimizer=optimizer,
-        num_iterations=num_iterations,
-        log_interval=log_interval,
-        val_interval=val_interval,
-        lr_scheduler = lr_scheduler,
-        ckpt_interval=ckpt_interval,
+        lr_scheduler=lr_scheduler,
+        args=args,
         device=device
     )
