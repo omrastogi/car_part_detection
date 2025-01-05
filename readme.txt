@@ -9,7 +9,7 @@ The dataset consists of car images, classified into seven categories:
 - Rear-Right
 - None (for ambiguous or irrelevant images)
 
-
+Annotation to Class Mapping:
 The annotations were mapped to class using the following map:
 | Class         | Annotations                                                                                         |
 |---------------|-----------------------------------------------------------------------------------------------------|
@@ -28,10 +28,12 @@ The annotations were mapped to class using the following map:
 | None          | alloywheel, antenna, car, cracked, dirt, logo, reflection, rust, scratch, shattered, sensor,        |
 |               | sunroof, wiper, series                                                                              |
 
+Final Label Selection:
 For each image, the area of each class was calculated by summing the areas of their respective annotations (compositions). 
 Afterward, the class with the largest cumulative area was selected as the label for the image. 
 There was an extra threshold for the 'None' class as it was all the images, and occupied large area in several images.
 
+Train/val/test Split:
 The dataset was split into training, validation, and testing sets using a stratified split to maintain class balance. 
 Training: 3656 images  
 Validation: 159 images  
@@ -61,8 +63,10 @@ Training Parameters:
 - Optimizer: AdamW (learning rate = 5e-4, weight decay = 1e-2)
 - Loss Function: CrossEntropyLoss
 - Learning Rate Scheduler: CosineAnnealingLR with `T_max = 5000` iterations and `eta_min = 1e-6`
-- Batch Size: 32
 - Number of Iterations: 10,000
+- Gradient Accumulation: 2 
+- Progressive Unfreezing with interval: 400 
+- Label Smoothing: 0.1 
 
 Hyper-parameters:
 - Data Augmentation: Enabled for the training set as described above.
