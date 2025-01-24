@@ -1,7 +1,6 @@
 # **Car Viewpoint Classification**
 ![Different ViewPoints](asset/all_cars.jpg)
 
-
 ## **Project Overview** - [About project](readme.txt)
 This project classifies car images into six viewpoints (Front, Front-Left, Front-Right, Rear, Rear-Left, Rear-Right) with an additional "None" class for irrelevant or ambiguous images. It includes a robust pipeline for preprocessing, model training, and optimization for edge deployment.
 
@@ -59,14 +58,17 @@ python test_predict.py \
 --csv results.csv
 ```
 
----
-## Prepare Dataset 
+## **Training**
+
+### Download Prepared Dataset
+Find the preprocessed dataset here: https://huggingface.co/datasets/omrastogi/car_parts_dataset
+
+### Prepare Dataset (Optional)
 ```bash
 python scripts/preprocess_ann.py
 ```
----
-## **Train**
 
+### Training
 ```bash
 CUDA_VISIBLE_DEVICES=0 python scripts/train.py --base_data_dir data \
                 --train_data_path data/training_data.json \
@@ -129,7 +131,8 @@ python src/tflite/infer_tflite.py \
 ## **Key Challenges**
 - Handling ambiguous and overlapping viewpoints.
 - Ensuring robust performance for the "None" class with limited data.
-- Optimizing the model for real-time inference on edge devices.
+- Handling the imbalance in the between the  classes
+![Class Distribution](asset/class_dist.png)
 
 
 ---
