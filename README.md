@@ -28,6 +28,8 @@ This project classifies car images into six viewpoints (Front, Front-Left, Front
    - [x] Convert into optimized format i.e. TFLite.
    - [x] Test for latency and accuracy.
 
+[x] Concluded
+
 
 ---
 ## **Setup**
